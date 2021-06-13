@@ -1,0 +1,74 @@
+<h2>Reification</h2>
+<html>
+ <head></head>
+ <body>
+  <p>Generics are known for their type safety, which is obviously a good thing. However, it has a flip side. As we've already discussed, type erasure — the compiler process that preserves type safety — can complicate program logic. Now it's time to discuss another generics-related notion: reification.</p> 
+  <h2>What is reification</h2> 
+  <p>Type erasure only affects certain data types — other types are not affected and preserve their type data in byte code. Types that save information about themselves during type erasure are called <em>reifiable</em>, while types whose information is erased are called <em>non-reifiable</em>. The term reification refers to the process of making certain type parameters available at runtime as well as at compile-time.</p> 
+  <h2>The two groups</h2> 
+  <p>Let's recall what types are replaced during type erasing and can be called non-reifiable. Non-reifiable types include:</p> 
+  <ul> 
+   <li> <p>parameterized types like <code class="language-java">&lt;T&gt;</code>, which are replaced by <code class="language-java">Object</code>. </p> </li> 
+   <li> <p>bounded generics or wildcards. For example, <code class="language-java">&lt;T extends Number&gt;</code> and <code class="language-java">&lt;? extends Number&gt;</code> are replaced by <code class="language-java">Number</code>.</p> </li> 
+  </ul> 
+  <p>Reifiable types are more extensive. They include:</p> 
+  <ul> 
+   <li> <p>primitive types like <code class="language-java">int</code> and <code class="language-java">double</code>. </p> </li> 
+   <li> <p>non-parameterized types such as <code class="language-java">String</code>, <code class="language-java">Number</code> and other non-generic classes. </p> </li> 
+   <li> <p>more complicated reifiable types, which are technically equivalent to <code class="language-java">Object</code>. The first is a <em>raw </em>type. It is a type that can be parameterized but is not. For instance, if class <code class="language-java">Box&lt;T&gt;</code> is declared as <code class="language-java">Box box = new Box()</code> then it's a raw type. The second is an unbounded wildcard type, for example, <code class="language-java">Box&lt;?&gt;</code>. It includes arrays whose component type is reifiable as well.</p> </li> 
+  </ul> 
+  <h2>Non-reifiable limitations</h2> 
+  <p>The fact that non-reifiable types are not present at runtime leads to some limitations: </p> 
+  <p>1) It is prohibited to create a non-reifiable typed instance.</p> 
+  <p>Suppose you need to create an instance of a class of <code class="language-java">T</code> type inside a parameterized class. It looks fine to call a generic constructor, however, it leads to a compilation error</p> 
+  <pre><code class="language-java">class Box&lt;T&gt; {
+    private T instance;
+
+    public void init() {
+        instance = new T(); // compile-time error: Type parameter T cannot be instantiated directly
+    }
+}</code></pre> 
+  <p>This limitation is reasonable since we have no way to guarantee that <code class="language-java">T</code> will implement any particular constructor.</p> 
+  <p>2) Another limitation for a non-reifiable type includes using <code class="language-java">instanceof</code> operator.</p> 
+  <pre><code class="language-java">class Box&lt;T&gt; {
+    ...
+    public boolean isIntegerSuperType() {
+        return Integer.valueOf(0) instanceof T; // compile-time error: Illegal generic type for instanceof
+    }
+}</code></pre> 
+  <p>This operation is prohibited since the run-time bytecode contains no information on non-reifiable types, making it impossible to verify whether an object is an instance of such a type. </p> 
+  <p>3) Only reifiable types can extend <code class="language-java">java.lang.Throwable</code>.</p> 
+  <p>Suppose that there is a generic class that extends <code class="language-java">Throwable</code>.</p> 
+  <pre><code class="language-java">class MyException&lt;T&gt; extends Exception {}</code></pre> 
+  <p>Given this code, the compiler raises the message <code class="language-java">Generic class may not extend java.lang.Throwable</code>. To illustrate the problem, suppose that the compiler ignored this error and ran the following code:</p> 
+  <pre><code class="language-java">try {
+    ...
+} catch (MyException&lt;String&gt; e) {
+    System.out.println("String");
+} catch (MyException&lt;Long&gt; e) {
+    System.out.println("Long");
+}</code></pre> 
+  <p>After type erasure, both caught types would be translated into a single parameterless <code class="language-java">MyException</code> type. As a result, we have a dilemma on how to handle <code class="language-java">MyException</code> – the program would not know which exception message to print. For this reason, any generic extensions of <code class="language-java">Throwable</code> are prohibited.</p> 
+  <p>4) Creating an instance of an array requires a reifiable type. This limitation also relates to <code class="language-java">Varargs</code>, which translates parameters into an array.</p> 
+  <p>Let's look at the signature of the <code class="language-java">&lt;T&gt; T[] toArray(T[] a)</code> method in the <code class="language-java">Collection</code> class. The main task of an array passed as an argument is to provide type information at runtime.</p> 
+  <p>Remember that due to type erasure, the code</p> 
+  <pre><code class="language-java">Collection&lt;Integer&gt; col = new ArrayList&lt;Integer&gt;();
+Integer[] array = col.toArray(new Integer[0]);</code></pre> 
+  <p> is equivalent to:</p> 
+  <pre><code class="language-java">Collection col = new ArrayList();
+
+// col has no type parameter information at runtime. 
+// Which array type should we create inside toArray() method without a parameter?
+Integer[] array = (Integer[]) col.toArray();</code></pre> 
+  <p>Since type erasure handles the type casting, it;s perfectly fine to call this method in the following way:</p> 
+  <pre><code class="language-java">Collection&lt;Integer&gt; col = ... initializing of this Collection
+
+// toArray will create array of appropriate size 
+Integer[] array = col.toArray(new Integer[0]);</code></pre> 
+  <p>In this manner, using a reifiable type such as Integer preserves type information at runtime. </p> 
+  <p>5) Casting to non-reifiable types usually results in a warning notifying the programmer that this practice may lead to exceptions.</p> 
+  <h2>Conclusion</h2> 
+  <p>Recognizing the distinction between non-reifiable and reifiable types can help you avoid errors when implementing generics and wildcards. Non-reifiable types have limitations that prohibit certain operations involving creating instances and arrays, using the <code class="language-java">instanceof</code> operator, and creating parameterized successors. In addition, casting to non-reifiable types may result in a loss of type safety.</p>
+ </body>
+</html>
+<a href="https://hyperskill.org/learn/step/10087">Show topic summary</a>

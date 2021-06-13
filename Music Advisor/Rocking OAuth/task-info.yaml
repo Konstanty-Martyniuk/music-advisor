@@ -1,0 +1,353 @@
+type: edu
+custom_name: stage2
+files:
+- name: src/advisor/Main.java
+  visible: true
+  text: |
+    package advisor;
+
+    public class Main {
+        public static void main(String[] args) {
+            System.out.println("Hello World!");
+        }
+    }
+  learner_created: false
+- name: build.gradle
+  visible: true
+  text: |-
+    apply plugin: 'java'
+    apply plugin: 'application'
+
+    group 'advisor'
+    version '1.0-SNAPSHOT'
+
+    sourceCompatibility = 11
+    mainClassName = 'advisor.Main'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        compile 'com.google.code.gson:gson:+'
+    }
+
+    jar {
+        manifest {
+            attributes 'Main-Class' : 'advisor.Main'
+        }
+        from {
+            configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+    }
+  learner_created: false
+- name: test/MusicAdvisorTest.java
+  visible: false
+  text: |
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.CheckResult;
+    import org.hyperskill.hstest.testcase.TestCase;
+
+    import java.util.List;
+    import java.util.function.Function;
+
+    class Attach {
+        Function<String, CheckResult> func;
+
+        Attach(Function<String, CheckResult> func) {
+            this.func = func;
+        }
+    }
+
+    public class MusicAdvisorTest extends StageTest<Attach> {
+
+        @Override
+        public List<TestCase<Attach>> generate() {
+            return List.of(
+                new TestCase<Attach>()
+                    .setInput("auth\nexit")
+                    .setAttach(new Attach(reply -> {
+                        if (!reply.contains("---SUCCESS---")) {
+                            return new CheckResult(false,
+                                "There is no \"---SUCCESS---\" after \"auth\" but should be");
+                        }
+                        if (!reply.contains("https://accounts.spotify.com/authorize?")) {
+                            return new CheckResult(false,
+                                "There is no link after \"auth\" but should be");
+                        }
+                        if (reply.contains("a19ee7dbfda443b2a8150c9101bfd645")) {
+                            return new CheckResult(false,
+                                    "You shouldn't use the client_id from the example!! " +
+                                            "You should create your own id on the spotify site.");
+                        }
+                        return CheckResult.correct();
+                    })),
+
+                new TestCase<Attach>()
+                    .setInput("new\nexit")
+                    .setAttach(new Attach(reply -> {
+                        if (!reply.strip().startsWith("Please, provide access for application.")) {
+                            return new CheckResult(false,
+                                "When no access provided you should output " +
+                                    "\"Please, provide access for application.\"");
+                        }
+                        return CheckResult.correct();
+                    })),
+
+                new TestCase<Attach>()
+                    .setInput("featured\nexit")
+                    .setAttach(new Attach(reply -> {
+                        if (!reply.strip().startsWith("Please, provide access for application.")) {
+                            return new CheckResult(false,
+                                "When no access provided you should output " +
+                                    "\"Please, provide access for application.\"");
+                        }
+                        return CheckResult.correct();
+                    })),
+
+                new TestCase<Attach>()
+                    .setInput("auth\nnew\nfeatured\nexit")
+                    .setAttach(new Attach(reply -> {
+                        if (!reply.contains("---NEW RELEASES---")) {
+                            return new CheckResult(false,
+                                "When \"new\" was inputted there should be \"---NEW RELEASES---\" line");
+                        }
+                        if (!reply.contains("---FEATURED---")) {
+                            return new CheckResult(false,
+                                "When \"featured\" was inputted there should be \"---FEATURED---\" line");
+                        }
+                        return CheckResult.correct();
+                    }))
+
+            );
+        }
+
+        @Override
+        public CheckResult check(String reply, Attach clue) {
+            return clue.func.apply(reply);
+        }
+    }
+  learner_created: false
+- name: src/advisor/UI.java
+  visible: true
+  text: |
+    package advisor;
+
+    import java.util.Scanner;
+
+    public class UI {
+        private static final String FEATURED = "featured";
+        private static final String NEW = "new";
+        private static final String CATEGORIES = "categories";
+        private static final String EXIT = "exit";
+        private static final String AUTH = "auth";
+
+        Featured featuredPlaylist = new Featured();
+        NewReleases newReleases = new NewReleases();
+        Categories categories = new Categories();
+
+        void authUser() {
+            Scanner scanner = new Scanner(System.in);
+            String auth = scanner.nextLine();
+
+            switch (auth) {
+                case AUTH:
+                    System.out.println("https://accounts.spotify.com/authorize?client_id=a19ee7dbfda443b2a8150c9101bfd645&redirect_uri=http://localhost:8080&response_type=code");
+                    System.out.println("---SUCCESS---");
+                    return;
+                default:
+                    System.out.println("Please, provide access for application.");
+            }
+        }
+
+        void setUserChoice() {
+            while (true) {
+                Scanner scanner = new Scanner(System.in);
+                String userChoice = scanner.nextLine();
+                switch (userChoice) {
+                    case FEATURED: featuredPlaylist.showPlaylists();
+                        break;
+                    case NEW: newReleases.showPlaylists();
+                        break;
+                    case CATEGORIES: categories.showCategories();
+                        break;
+                    case"playlists Mood":
+                        System.out.println("---MOOD PLAYLISTS---\n" +
+                                "Walk Like A Badass  \n" +
+                                "Rage Beats  \n" +
+                                "Arab Mood Booster  \n" +
+                                "Sunday Stroll");
+                        break;
+                    case EXIT:
+                        System.out.println("---GOODBYE!---");
+                        return;
+
+                }
+            }
+        }
+    }
+  learner_created: true
+- name: src/advisor/AppConfig.java
+  visible: true
+  text: |
+    package advisor;
+
+    public class AppConfig {
+    }
+  learner_created: true
+- name: src/advisor/NewReleases.java
+  visible: true
+  text: |
+    package advisor;
+
+    import java.util.ArrayList;
+
+    public class NewReleases implements MusicList {
+        static ArrayList<String> newReleases = new ArrayList<>(){
+            {
+                add("Mountains [Sia, Diplo, Labrinth]");
+                add("Runaway [Lil Peep]");
+                add("The Greatest Show [Panic! At The Disco]");
+                add("All Out Life [Slipknot]");
+            }
+        };
+
+
+
+        @Override
+        public void showPlaylists() {
+            System.out.println("---NEW RELEASES---");
+            newReleases.forEach(r -> System.out.println(r));
+        }
+    }
+  learner_created: true
+- name: src/advisor/Featured.java
+  visible: true
+  text: |
+    package advisor;
+
+    import java.util.ArrayList;
+
+    public class Featured implements MusicList {
+        static ArrayList<String> playlists = new ArrayList<>() {
+            {
+                add("Mellow Morning");
+                add("Wake Up and Smell the Coffee");
+                add("Monday Motivation");
+                add("Songs to Sing in the Shower");
+            }
+        };
+
+
+        public Featured() {
+
+        }
+
+        public static
+        ArrayList<String> getPlaylists() {
+            return playlists;
+        }
+
+        public static void addPlaylist(String playlist) {
+            playlists.add(playlist);
+        }
+
+        @Override
+        public void showPlaylists() {
+            System.out.println("---FEATURED---");
+            playlists.forEach(p -> System.out.println(p));
+        }
+    }
+  learner_created: true
+- name: src/advisor/Categories.java
+  visible: true
+  text: |
+    package advisor;
+
+    import java.util.ArrayList;
+
+    public class Categories {
+        static ArrayList<String> categories = new ArrayList<>() {
+
+            {
+                add("Top Lists");
+                add("Pop");
+                add("Mood");
+                add("Latin");
+            }
+        };
+
+
+        public void showCategories() {
+            System.out.println("---CATEGORIES---");
+            categories.forEach(c -> System.out.println(c));
+        }
+    }
+  learner_created: true
+- name: src/advisor/Song.java
+  visible: true
+  text: |
+    package advisor;
+
+    public abstract class Song {
+        String name;
+        String link = null;
+    }
+  learner_created: true
+- name: src/advisor/Application.java
+  visible: true
+  text: |
+    package advisor;
+
+    public class Application implements Runnable {
+
+
+        @Override
+        public void run() {
+
+        }
+    }
+  learner_created: true
+- name: src/advisor/UserChoice.java
+  visible: true
+  text: |
+    package advisor;
+
+    public enum UserChoice {
+        NEW,
+        FEATURED,
+        CATEGORIES,
+        PLAYLISTS
+    }
+  learner_created: true
+- name: src/advisor/MusicList.java
+  visible: true
+  text: |
+    package advisor;
+
+    public interface MusicList {
+        void showPlaylists();
+
+    }
+  learner_created: true
+- name: src/advisor/Playlist.java
+  visible: true
+  text: |
+    package advisor;
+
+    import java.util.ArrayList;
+
+    public abstract class Playlist implements MusicList {
+        String albumName;
+        String artist;
+        ArrayList<Song> songs;
+        String link;
+
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/62/stages/336/implement#comment
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Sun, 16 May 2021 23:07:17 UTC
+record: 2

@@ -1,0 +1,51 @@
+<h2>Photocopiers</h2>
+<html>
+ <head></head>
+ <body>
+  <p>Remember all these good old <a target="_blank" href="https://en.wikipedia.org/wiki/Photocopier" rel="nofollow noopener noreferrer">photocopiers</a>? Let's try to implement something similar with time-proven Java arrays in a dangerous mix with up-to-date Java Generics.</p> 
+  <p>Your task is to create a Multiplicator that receives Folders with anything that can be copied (i.e., implementing Copy interface) and creates an array of Folders with copies of the original Folder content. The mix of generics and arrays is not desirable, but sometimes we need to work in such a way (e.g., when interacting with legacy code), and it is worth spending some time to learn how to deal with it.</p> 
+  <p>The class hierarchy is illustrated by the code snippet:</p> 
+  <pre><code class="language-java">interface Copy&lt;T&gt; {
+  T copy();
+}
+
+class Folder&lt;T&gt; {  
+    private T item;
+    
+    public void put(T item) {
+      this.item = item;
+    }
+    
+    public T get() {
+        return this.item;
+    }
+}
+
+/**
+ * Class to work with
+ */
+class Multiplicator {
+   /**
+   * Multiply folders and put copies of original folder argument content in each.
+   * 
+   * @param folder folder content of which should be multiplicated.
+   * @param arraySize size of array to return. 
+   *     Each array element should have Folder with a copy of the original content inside.
+   * @return array of Folder&lt;T&gt;[] objects
+   */
+  public static &lt;T extends Copy&lt;T&gt;&gt; Folder&lt;T&gt;[] multiply(Folder&lt;T&gt; folder, int arraySize) {
+    // Method to implement
+  }
+}</code></pre> 
+  <p><br> Note the following:</p> 
+  <ul> 
+   <li>It's ok to create new Folder instances.</li> 
+   <li>Objects inside newly created Folders should be copies of the original.</li> 
+   <li>Original Folder object should be left intact (all array entries are copies of the original object).</li> 
+  </ul>
+ </body>
+</html><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">Multiplicator class<br></code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">Well done!</code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+<b>Caution</b><br><br>
+You may see errors in your code or execution results due to missing context. Don’t worry about it, just write the solution and press Check.
+<br><br>
+<a href="https://hyperskill.org/learn/step/10087">Show topic summary</a>
